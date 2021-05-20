@@ -4,7 +4,7 @@ const AWSXRAY = require('aws-xray-sdk-core');
 const xRay = AWSXRAY.captureAWS(require('aws-sdk')); // toda requisição poderá ser monitorada pelo aws x-ray
 
 exports.handler = async function(event, context) {
-    // console.log(event);
+    console.log(event);
     // console.log(context);
 
     const apiGwRequestId = event.requestContext.requestId; // request id da api gtw (chamou o lambda)
@@ -14,7 +14,7 @@ exports.handler = async function(event, context) {
 
     const method = event.httpMethod
     if (method === 'GET') {
-        if (event.path == '/') {
+        if (event.resource == '/') {
             return {
                 statusCode: 200,
                 headers: {},
@@ -22,6 +22,20 @@ exports.handler = async function(event, context) {
                     message: 'Hello World! apiGwRequestId lambdaRequestId',
                     apiGwRequestId: apiGwRequestId,
                     lambdaRequestId: lambdaRequestId,
+                }),
+            };
+        } else if (event.resource === '/{id}') {
+            const resourceId = event.pathParameters.id;
+            console.log(`ResorceId: ${resourceId}`);
+
+            return {
+                statusCode: 200,
+                headers: {},
+                body: JSON.stringify({
+                    message: 'Hello World! apiGwRequestId lambdaRequestId',
+                    apiGwRequestId: apiGwRequestId,
+                    lambdaRequestId: lambdaRequestId,
+                    resourceId: resourceId,
                 }),
             };
         }

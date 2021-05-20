@@ -28,6 +28,12 @@ export class Function01CdkStack extends cdk.Stack {
       restApiName: 'Hello Service',
       description: 'This is the Hello service',
       deployOptions: {
+        methodOptions: {
+          '/*/*': {
+            throttlingRateLimit: 100, // requisições por segundo
+            throttlingBurstLimit: 10, // requisições simultâneas
+          },
+        },
         accessLogDestination: new apigateway.LogGroupLogDestination(logGroup),
         accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
           caller: true,
@@ -49,6 +55,41 @@ export class Function01CdkStack extends cdk.Stack {
       },
     });
 
-    api.root.addMethod('GET', gettHelloIntegration);
+    const getMethod = api.root.addMethod('GET', gettHelloIntegration, {
+      apiKeyRequired: true // API key habilitada
+    });
+
+    const getWithIdIntegration = new apigateway.LambdaIntegration(handler);
+    const getWithIdResource = api.root.addResource('{id}');
+    getWithIdResource.addMethod('GET', getWithIdIntegration, {
+      apiKeyRequired: true // API key habilitada
+    });
+
+    const key = api.addApiKey('ApiKey');
+    const plan = api.addUsagePlan('UsagePlan', {
+      apiKey: key,
+      quota: { // máx de requisições dentro de um período
+        limit: 1000,
+        period: apigateway.Period.DAY,
+      },
+      throttle: {
+        rateLimit: 4,
+        burstLimit: 4,
+      },
+    });
+
+    plan.addApiStage({
+      stage: api.deploymentStage,
+      throttle: [
+        {
+          method: getMethod,
+          throttle: {
+            rateLimit: 2,
+            burstLimit: 2,
+          },
+        },
+      ],
+    });
+
   }
 }
